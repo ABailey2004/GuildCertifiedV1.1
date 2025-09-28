@@ -6,15 +6,8 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
 
-/js/*
-  Content-Type: application/javascript
+/js/*.js
+  Content-Type: application/javascript; charset=utf-8
 
-/styles/*
-  Content-Type: text/css
-
-*.js
-  Content-Type: application/javascript
-
-*.css  
-  Content-Type: text/css
-
+/styles/*.css
+  Content-Type: text/css; charset=utf-8
