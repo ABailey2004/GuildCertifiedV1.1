@@ -1,14 +1,17 @@
-[env.production]
-compatibility_date = "2023-05-18"
+name = "guildcertifiedv1-1"
+compatibility_date = "2023-12-01"
 
-[[env.production.rules]]
+[site]
+bucket = "./"
+
+[[rules]]
 type = "Text"
 globs = ["**/*.js"]
-[env.production.rules.headers]
-"Content-Type" = "application/javascript; charset=utf-8"
+[rules.headers]
+"Content-Type" = "application/javascript"
 
-[[env.production.rules]]
-type = "Text"
+[[rules]]
+type = "Text" 
 globs = ["**/*.css"]
-[env.production.rules.headers]
-"Content-Type" = "text/css; charset=utf-8"
+[rules.headers]
+"Content-Type" = "text/css"
