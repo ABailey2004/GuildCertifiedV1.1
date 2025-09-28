@@ -33,11 +33,25 @@ const CONFIG = {
                                window.location.hostname === '';
             
             if (isLocalhost) {
-                return window.location.origin;
+                // For localhost, use the exact URL that Discord expects
+                const port = window.location.port ? `:${window.location.port}` : '';
+                return `http://localhost${port}`;
             } else {
                 // Production environment
                 return window.location.origin;
             }
+        },
+        
+        // Get Discord authorization URL
+        getDiscordAuthUrl(redirectUri, state) {
+            const params = new URLSearchParams({
+                client_id: this.DISCORD_CLIENT_ID,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: 'identify email',
+                state: state || 'discord_auth_' + Date.now()
+            });
+            return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
         }
     },
 
