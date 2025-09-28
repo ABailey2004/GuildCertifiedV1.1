@@ -1,367 +1,593 @@
-// Main application logic for the homepage
-class MainApp {
+// Main application logic
+class RateMyServerApp {
     constructor() {
         this.servers = [];
         this.filteredServers = [];
-        this.currentUser = null;
+        this.currentServer = null;
+        this.currentRating = 5;
+        
         this.init();
     }
 
-    init() {
-        this.loadServers();
+    async init() {
+        // Clear any unwanted hash from URL on page load
+        if (window.location.hash === '#profile' || window.location.hash === '#settings') {
+            history.replaceState(null, null, window.location.pathname);
+        }
+        
         this.bindEvents();
+        await this.loadData();
         this.updateStats();
-        this.checkAuthState();
     }
 
     bindEvents() {
-        // Search functionality
-        document.getElementById('server-search')?.addEventListener('input', (e) => {
-            this.searchServers(e.target.value);
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleNavigation(e.target.getAttribute('href'));
+            });
         });
 
-        // Category filter
-        document.getElementById('category-filter')?.addEventListener('change', (e) => {
-            this.filterByCategory(e.target.value);
+        // Search
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        
+        searchInput.addEventListener('input', () => this.filterServers());
+        searchBtn.addEventListener('click', () => this.filterServers());
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.filterServers();
         });
 
-        // Rating filter
-        document.getElementById('rating-filter')?.addEventListener('change', (e) => {
-            this.filterByRating(e.target.value);
+        // Filters
+        document.getElementById('category-filter').addEventListener('change', () => this.filterServers());
+        document.getElementById('rating-filter').addEventListener('change', () => this.filterServers());
+        document.getElementById('sort-by').addEventListener('change', () => this.filterServers());
+
+        // Modals
+        this.bindModalEvents();
+
+        // Forms
+        this.bindFormEvents();
+    }
+
+    bindModalEvents() {
+        // Add server modal
+        const addServerLink = document.querySelector('a[href="#add-server"]');
+        const addServerModal = document.getElementById('add-server-modal');
+        
+        if (addServerLink) {
+            addServerLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showModal('add-server-modal');
+            });
+        }
+
+        // Close modals
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                this.closeModal(e.target.closest('.modal'));
+            });
         });
 
-        // Sort functionality
-        document.getElementById('sort-filter')?.addEventListener('change', (e) => {
-            this.sortServers(e.target.value);
+        // Click outside to close
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal(modal);
+                }
+            });
         });
+    }
 
+    bindFormEvents() {
         // Add server form
-        document.getElementById('add-server-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleAddServer();
-        });
+        const addServerForm = document.getElementById('add-server-form');
+        if (addServerForm) {
+            addServerForm.addEventListener('submit', (e) => this.handleAddServer(e));
+        }
 
-        // Sign in button
-        document.getElementById('sign-in-btn')?.addEventListener('click', () => {
-            this.handleSignIn();
-        });
+        // Review form
+        const reviewForm = document.getElementById('review-form');
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', (e) => this.handleAddReview(e));
+        }
+
+        // Star rating
+        this.bindStarRating();
     }
 
-    async loadServers() {
-        try {
-            // Load from localStorage first
-            const localServers = JSON.parse(localStorage.getItem('gc_servers') || '[]');
+    bindStarRating() {
+        const stars = document.querySelectorAll('#star-rating i');
+        
+        // Only bind if star rating exists (not on all pages)
+        if (stars.length === 0) return;
+        
+        stars.forEach((star, index) => {
+            star.addEventListener('click', () => {
+                this.currentRating = index + 1;
+                this.updateStarDisplay();
+            });
             
-            // Merge with any API servers (if you implement API later)
-            this.servers = [...localServers];
-            this.filteredServers = [...this.servers];
-            
-            // Apply server creation limit and description truncation
-            this.processServerCards();
-            
-            this.displayServers();
-            this.updateStats();
-        } catch (error) {
-            console.error('Error loading servers:', error);
-            this.showError('Failed to load servers');
+            star.addEventListener('mouseenter', () => {
+                this.highlightStars(index + 1);
+            });
+        });
+
+        const starRating = document.getElementById('star-rating');
+        if (starRating) {
+            starRating.addEventListener('mouseleave', () => {
+                this.updateStarDisplay();
+            });
         }
     }
 
-    processServerCards() {
-        this.servers = this.servers.map(server => {
-            // Truncate description to 200 characters
-            if (server.description && server.description.length > 200) {
-                server.displayDescription = server.description.substring(0, 200) + '....';
+    highlightStars(rating) {
+        const stars = document.querySelectorAll('#star-rating i');
+        stars.forEach((star, index) => {
+            star.classList.toggle('active', index < rating);
+        });
+    }
+
+    updateStarDisplay() {
+        this.highlightStars(this.currentRating);
+    }
+
+    updateServerRatings() {
+        console.log('📊 Updating server ratings based on stored reviews...');
+        
+        this.servers.forEach(server => {
+            const serverId = server.id || server.name;
+            const storedReviews = JSON.parse(localStorage.getItem(`reviews_${serverId}`) || '[]');
+            
+            if (storedReviews.length > 0) {
+                const totalRating = storedReviews.reduce((sum, review) => sum + review.rating, 0);
+                const avgRating = totalRating / storedReviews.length;
+                
+                server.average_rating = avgRating;
+                server.review_count = storedReviews.length;
+                server.rating = avgRating; // Also set 'rating' property for compatibility
+                server.reviewCount = storedReviews.length; // Also set 'reviewCount' property for compatibility
+                
+                console.log(`✅ Server "${server.name}": ${avgRating.toFixed(1)} stars from ${storedReviews.length} reviews`);
             } else {
-                server.displayDescription = server.description || '';
+                server.average_rating = 0;
+                server.review_count = 0;
+                server.rating = 0;
+                server.reviewCount = 0;
             }
-            
-            // Ensure server has logo preview capability
-            if (server.logoUrl && !server.logoPreview) {
-                server.logoPreview = server.logoUrl;
-            }
-            
-            return server;
         });
+        
+        console.log('✅ Server ratings updated');
     }
 
-    searchServers(query) {
-        const searchTerm = query.toLowerCase().trim();
-        
-        if (!searchTerm) {
+    async loadData() {
+        try {
+            this.showLoading(true);
+            
+            // Load servers from both sources
+            let servers = [];
+            
+            // Load from sheets API (existing servers)
+            try {
+                const apiServers = await sheetsAPI.getServers();
+                servers = apiServers || [];
+            } catch (apiError) {
+                console.warn('Could not load from sheets API:', apiError);
+                servers = [];
+            }
+            
+            // Load user-created servers from localStorage
+            const localServers = JSON.parse(localStorage.getItem('gc_servers') || '[]');
+            console.log('Loaded local servers:', localServers);
+            
+            // Combine both sources (local servers first so they appear at the top)
+            this.servers = [...localServers, ...servers];
+            
+            // Update server ratings based on stored reviews
+            this.updateServerRatings();
+            
             this.filteredServers = [...this.servers];
-        } else {
-            this.filteredServers = this.servers.filter(server =>
-                server.name.toLowerCase().includes(searchTerm) ||
+            this.renderServers();
+            
+        } catch (error) {
+            console.error('Error loading data:', error);
+            this.showError('Failed to load servers. Please check your internet connection and try again.');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async updateStats() {
+        try {
+            const stats = await sheetsAPI.getStats();
+            
+            // Only update if elements exist (for main page)
+            const totalServersEl = document.getElementById('total-servers');
+            const totalReviewsEl = document.getElementById('total-reviews');
+            const avgRatingEl = document.getElementById('avg-rating');
+            
+            if (totalServersEl) totalServersEl.textContent = stats.totalServers;
+            if (totalReviewsEl) totalReviewsEl.textContent = stats.totalReviews;
+            if (avgRatingEl) avgRatingEl.textContent = stats.avgRating.toFixed(1);
+        } catch (error) {
+            console.error('Error updating stats:', error);
+        }
+    }
+
+    filterServers() {
+        const searchInput = document.getElementById('search-input');
+        const categoryFilterEl = document.getElementById('category-filter');
+        const ratingFilterEl = document.getElementById('rating-filter');
+        const sortByEl = document.getElementById('sort-by');
+        
+        // Check if elements exist (may not be present on all pages)
+        if (!searchInput || !categoryFilterEl || !ratingFilterEl || !sortByEl) {
+            return;
+        }
+        
+        const searchTerm = searchInput.value.toLowerCase();
+        const categoryFilter = categoryFilterEl.value;
+        const ratingFilter = ratingFilterEl.value;
+        const sortBy = sortByEl.value;
+
+        let filtered = this.servers.filter(server => {
+            // Search filter
+            const matchesSearch = !searchTerm || 
+                server.name?.toLowerCase().includes(searchTerm) ||
                 server.description?.toLowerCase().includes(searchTerm) ||
-                server.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
-            );
-        }
-        
-        this.displayServers();
+                (server.tags && server.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+
+            // Category filter
+            const matchesCategory = !categoryFilter || server.category === categoryFilter;
+
+            // Rating filter
+            const matchesRating = !ratingFilter || (server.average_rating || 0) >= parseInt(ratingFilter);
+
+            return matchesSearch && matchesCategory && matchesRating;
+        });
+
+        // Sort
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'rating':
+                    return (b.average_rating || 0) - (a.average_rating || 0);
+                case 'newest':
+                    return new Date(b.date_added || 0) - new Date(a.date_added || 0);
+                case 'oldest':
+                    return new Date(a.date_added || 0) - new Date(b.date_added || 0);
+                case 'reviews':
+                    return (b.review_count || 0) - (a.review_count || 0);
+                default:
+                    return 0;
+            }
+        });
+
+        this.filteredServers = filtered;
+        this.renderServers();
     }
 
-    filterByCategory(category) {
-        if (!category || category === 'all') {
-            this.filteredServers = [...this.servers];
-        } else {
-            this.filteredServers = this.servers.filter(server =>
-                server.category === category
-            );
-        }
-        
-        this.displayServers();
-    }
-
-    filterByRating(minRating) {
-        if (!minRating || minRating === 'all') {
-            this.filteredServers = [...this.servers];
-        } else {
-            const minRatingNum = parseFloat(minRating);
-            this.filteredServers = this.servers.filter(server =>
-                (server.averageRating || 0) >= minRatingNum
-            );
-        }
-        
-        this.displayServers();
-    }
-
-    sortServers(sortBy) {
-        switch (sortBy) {
-            case 'rating':
-                this.filteredServers.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
-                break;
-            case 'name':
-                this.filteredServers.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case 'reviews':
-                this.filteredServers.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
-                break;
-            case 'newest':
-                this.filteredServers.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
-                break;
-            default:
-                // Keep original order
-                break;
-        }
-        
-        this.displayServers();
-    }
-
-    displayServers() {
+    renderServers() {
         const container = document.getElementById('servers-container');
+        const noResults = document.getElementById('no-results');
+        
+        // Check if elements exist (may not be present on all pages)
         if (!container) return;
 
         if (this.filteredServers.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-search"></i>
-                    <h3>No servers found</h3>
-                    <p>Try adjusting your search or filters</p>
-                </div>
-            `;
+            container.innerHTML = '';
+            if (noResults) noResults.style.display = 'block';
             return;
         }
 
-        container.innerHTML = this.filteredServers.map(server => this.createServerCard(server)).join('');
-    }
-
-    createServerCard(server) {
-        const rating = server.averageRating || 0;
-        const reviewCount = server.reviewCount || 0;
-        const stars = this.generateStars(rating);
+        if (noResults) noResults.style.display = 'none';
         
-        // Show logo preview in top right if available
-        const logoPreview = server.logoUrl ? 
-            `<div class="server-logo-preview">
-                <img src="${server.logoUrl}" alt="${server.name} logo" onerror="this.style.display='none'">
-            </div>` : '';
-
-        return `
-            <div class="server-card" onclick="window.location.href='server-details.html?id=${server.id}'">
-                <div class="server-card-header">
-                    <h3 class="server-name">${server.name}</h3>
-                    ${logoPreview}
-                </div>
-                <p class="server-description">${server.displayDescription}</p>
-                <div class="server-meta">
-                    <span class="server-category">${server.category || 'General'}</span>
-                    <div class="server-rating">
-                        <div class="stars">${stars}</div>
-                        <span class="rating-text">${rating.toFixed(1)} (${reviewCount} reviews)</span>
+        container.innerHTML = this.filteredServers.map(server => `
+            <div class="server-card fade-in" data-server-id="${server.id || server.name}">
+                <div class="server-header">
+                    <div class="server-info">
+                        <h3>${this.escapeHtml(server.name || 'Unnamed Server')}</h3>
+                        <div class="server-category">${this.escapeHtml(server.category || 'General')}</div>
+                    </div>
+                    <div class="server-logo">
+                        <img src="${server.icon || server.logo || this.getDefaultServerIcon(server.name)}" 
+                             alt="${this.escapeHtml(server.name)} Logo" 
+                             class="server-logo-img">
                     </div>
                 </div>
-                <div class="server-tags">
-                    ${(server.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                
+                <div class="server-description">
+                    ${this.truncateDescription(server.description || 'No description available.')}
+                </div>
+                
+                <div class="server-rating">
+                    <div class="stars">
+                        ${this.renderStars(server.average_rating || 0)}
+                    </div>
+                    <span class="rating-text">
+                        ${(server.average_rating || 0).toFixed(1)} 
+                        (${server.review_count || 0} review${(server.review_count || 0) !== 1 ? 's' : ''})
+                    </span>
+                </div>
+                
+                ${server.tags && server.tags.length > 0 ? `
+                    <div class="server-tags">
+                        ${server.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                ` : ''}
+                
+                <div class="server-actions">
+                    <button class="btn btn-primary" onclick="app.openReviewModal('${server.id || server.name}')">
+                        <i class="fas fa-star"></i> Write Review
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.viewServerDetails('${server.id || server.name}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                    ${server.invite_link ? `
+                        <a href="${server.invite_link}" target="_blank" class="btn btn-outline">
+                            <i class="fab fa-discord"></i> Join Server
+                        </a>
+                    ` : ''}
                 </div>
             </div>
-        `;
+        `).join('');
     }
 
-    generateStars(rating) {
+    renderStars(rating) {
         const fullStars = Math.floor(rating);
         const hasHalfStar = rating % 1 >= 0.5;
         const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-        let stars = '';
+        
+        let starsHtml = '';
         
         // Full stars
         for (let i = 0; i < fullStars; i++) {
-            stars += '<i class="fas fa-star"></i>';
+            starsHtml += '<i class="fas fa-star filled"></i>';
         }
         
         // Half star
         if (hasHalfStar) {
-            stars += '<i class="fas fa-star-half-alt"></i>';
+            starsHtml += '<i class="fas fa-star-half-alt filled"></i>';
         }
         
         // Empty stars
         for (let i = 0; i < emptyStars; i++) {
-            stars += '<i class="far fa-star"></i>';
+            starsHtml += '<i class="far fa-star"></i>';
         }
         
-        return stars;
+        return starsHtml;
     }
 
-    handleAddServer() {
-        // Check if user is logged in
-        if (!this.currentUser) {
-            this.showError('Please sign in to add a server');
-            return;
-        }
+    async openReviewModal(serverId) {
+        const server = this.servers.find(s => (s.id || s.name) === serverId);
+        if (!server) return;
 
-        // Check server limit (3 servers max)
-        const userServers = this.servers.filter(server => server.ownerId === this.currentUser.id);
-        if (userServers.length >= 3) {
-            this.showServerLimitPopup();
-            return;
-        }
-
-        const formData = new FormData(document.getElementById('add-server-form'));
+        this.currentServer = server;
+        this.currentRating = 5;
         
-        const server = {
-            id: Date.now().toString(),
-            name: formData.get('name'),
-            description: formData.get('description'),
-            category: formData.get('category'),
-            inviteLink: formData.get('inviteLink'),
-            tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag),
-            ownerId: this.currentUser.id,
-            dateAdded: new Date().toISOString(),
-            averageRating: 0,
-            reviewCount: 0
+        const reviewServerInfo = document.getElementById('review-server-info');
+        if (reviewServerInfo) {
+            reviewServerInfo.innerHTML = `
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-block-end: 1rem;">
+                    <h4>${this.escapeHtml(server.name)}</h4>
+                    <p style="margin: 0; color: #64748b;">${this.escapeHtml(server.description)}</p>
+                </div>
+            `;
+        }
+        
+        this.updateStarDisplay();
+        this.showModal('review-modal');
+    }
+
+    async viewServerDetails(serverId) {
+        // Redirect to server details page
+        window.location.href = `server-details.html?id=${encodeURIComponent(serverId)}`;
+    }
+
+    async handleAddServer(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const serverData = {
+            name: formData.get('server-name') || document.getElementById('server-name').value,
+            description: formData.get('server-description') || document.getElementById('server-description').value,
+            category: formData.get('server-category') || document.getElementById('server-category').value,
+            invite_link: formData.get('server-invite') || document.getElementById('server-invite').value,
+            tags: (formData.get('server-tags') || document.getElementById('server-tags').value).split(',').map(tag => tag.trim()).filter(tag => tag),
+            date_added: new Date().toISOString().split('T')[0],
+            average_rating: 0,
+            review_count: 0
         };
 
-        this.servers.push(server);
-        this.saveServers();
-        this.loadServers();
-        
-        // Reset form
-        document.getElementById('add-server-form').reset();
-        
-        this.showSuccess('Server added successfully!');
+        try {
+            await sheetsAPI.addServer(serverData);
+            this.closeModal(document.getElementById('add-server-modal'));
+            e.target.reset();
+            await this.loadData();
+            await this.updateStats();
+            this.showSuccess('Server added successfully!');
+        } catch (error) {
+            console.error('Error adding server:', error);
+            this.showError('Failed to add server. Please try again.');
+        }
     }
 
-    showServerLimitPopup() {
-        const popup = document.createElement('div');
-        popup.className = 'server-limit-popup';
-        popup.innerHTML = `
-            <div class="popup-content">
-                <div class="popup-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3>Server Limit Reached</h3>
-                <p>You can only create up to 3 servers. To add a new server, please remove one of your existing servers first.</p>
-                <button onclick="this.closest('.server-limit-popup').remove()" class="btn btn-primary">
-                    Got it
-                </button>
-            </div>
-            <div class="popup-backdrop" onclick="this.closest('.server-limit-popup').remove()"></div>
-        `;
+    async handleAddReview(e) {
+        e.preventDefault();
         
-        document.body.appendChild(popup);
+        if (!this.currentServer) return;
+
+        const formData = new FormData(e.target);
+        const reviewerName = formData.get('reviewer-name') || document.getElementById('reviewer-name').value;
+        const reviewText = formData.get('review-text') || document.getElementById('review-text').value;
         
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (document.body.contains(popup)) {
-                popup.remove();
+        if (!reviewerName || !reviewText) {
+            this.showError('Please fill in both your name and review text.');
+            return;
+        }
+        
+        if (reviewText.length < 10) {
+            this.showError('Review must be at least 10 characters long.');
+            return;
+        }
+
+        const serverId = this.currentServer.id || this.currentServer.name;
+        const newReview = {
+            id: `review-${Date.now()}`,
+            serverId: serverId,
+            username: reviewerName,
+            rating: this.currentRating,
+            text: reviewText,
+            date: new Date().toISOString(),
+            helpful: 0,
+            reported: false
+        };
+
+        try {
+            // Save review to localStorage (same as server details page)
+            const existingReviews = JSON.parse(localStorage.getItem(`reviews_${serverId}`) || '[]');
+            existingReviews.unshift(newReview);
+            localStorage.setItem(`reviews_${serverId}`, JSON.stringify(existingReviews));
+            
+            // Also try to save to sheets API if available
+            try {
+                const reviewData = {
+                    server_id: serverId,
+                    reviewer_name: reviewerName,
+                    rating: this.currentRating,
+                    review_text: reviewText,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                await sheetsAPI.addReview(reviewData);
+            } catch (apiError) {
+                console.warn('Could not save to sheets API:', apiError);
+                // Continue anyway since we saved locally
             }
-        }, 5000);
-    }
-
-    handleSignIn() {
-        if (window.authManager) {
-            window.authManager.startAuth();
-        } else {
-            this.showError('Authentication system not available');
+            
+            // Close modal and reset form
+            this.closeModal(document.getElementById('review-modal'));
+            e.target.reset();
+            this.currentRating = 5;
+            
+            // Refresh server ratings and display
+            this.updateServerRatings();
+            this.renderServers();
+            
+            this.showSuccess('Review added successfully!');
+        } catch (error) {
+            console.error('Error adding review:', error);
+            this.showError('Failed to add review. Please try again.');
         }
     }
 
-    checkAuthState() {
-        // Check if user is logged in
-        const userData = JSON.parse(localStorage.getItem('discord_user') || 'null');
-        const sessionData = JSON.parse(sessionStorage.getItem('discord_session') || 'null');
+    handleNavigation(href) {
+        // Skip if it's not a hash link or if it's meant for external navigation
+        if (!href.startsWith('#') || href === '#profile' || href === '#settings') {
+            return;
+        }
         
-        if (userData && sessionData) {
-            this.currentUser = userData;
-            this.updateAuthUI(true);
-        } else {
-            this.updateAuthUI(false);
+        const target = href.replace('#', '');
+        
+        // Update active nav link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        const targetLink = document.querySelector(`a[href="${href}"]`);
+        if (targetLink) {
+            targetLink.classList.add('active');
+        }
+
+        // Scroll to section
+        const element = document.getElementById(target);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
-    updateAuthUI(isLoggedIn) {
-        const signInBtn = document.getElementById('sign-in-btn');
-        if (!signInBtn) return;
+    showModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
 
-        if (isLoggedIn && this.currentUser) {
-            signInBtn.textContent = `👋 ${this.currentUser.username}`;
-            signInBtn.onclick = () => window.location.href = 'dashboard.html';
-        } else {
-            signInBtn.textContent = '🔒 Sign In';
-            signInBtn.onclick = () => this.handleSignIn();
+    closeModal(modal) {
+        if (typeof modal === 'string') {
+            modal = document.getElementById(modal);
         }
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
     }
 
-    saveServers() {
-        localStorage.setItem('gc_servers', JSON.stringify(this.servers));
-    }
-
-    updateStats() {
-        const totalServers = this.servers.length;
-        const totalReviews = this.servers.reduce((sum, server) => sum + (server.reviewCount || 0), 0);
-        const avgRating = totalReviews > 0 ? 
-            this.servers.reduce((sum, server) => sum + (server.averageRating || 0), 0) / this.servers.length : 0;
-
-        document.getElementById('servers-count').textContent = totalServers;
-        document.getElementById('reviews-count').textContent = totalReviews;
-        document.getElementById('avg-rating').textContent = avgRating.toFixed(1);
-    }
-
-    showError(message) {
-        const toast = this.createToast(message, 'error');
-        document.body.appendChild(toast);
+    showLoading(show) {
+        const loading = document.getElementById('loading');
+        const container = document.getElementById('servers-container');
+        
+        if (show) {
+            loading.style.display = 'block';
+            container.style.display = 'none';
+        } else {
+            loading.style.display = 'none';
+            container.style.display = 'grid';
+        }
     }
 
     showSuccess(message) {
-        const toast = this.createToast(message, 'success');
-        document.body.appendChild(toast);
+        // You could implement a toast notification system here
+        alert(message);
     }
 
-    createToast(message, type) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
-            <span>${message}</span>
-        `;
+    showError(message) {
+        // You could implement a toast notification system here
+        alert(message);
+    }
+
+    getDefaultServerIcon(serverName) {
+        // Generate a default icon based on server name
+        const hash = this.hashCode(serverName || 'Server');
+        const hue = Math.abs(hash) % 360;
+        return `data:image/svg+xml,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+                <rect width="64" height="64" fill="hsl(${hue}, 60%, 50%)" rx="12"/>
+                <text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-family="Arial, sans-serif" font-size="28" font-weight="bold">
+                    ${(serverName || 'S').charAt(0).toUpperCase()}
+                </text>
+            </svg>
+        `)}`;
+    }
+
+    hashCode(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash;
+    }
+
+    truncateDescription(description) {
+        if (description.length <= 200) {
+            return this.escapeHtml(description);
+        }
         
-        setTimeout(() => toast.remove(), 3000);
-        return toast;
+        // Find the last complete word before 200 characters
+        let truncated = description.substring(0, 200);
+        const lastSpaceIndex = truncated.lastIndexOf(' ');
+        
+        if (lastSpaceIndex > 150) { // Only break at word if it's not too short
+            truncated = truncated.substring(0, lastSpaceIndex);
+        }
+        
+        return this.escapeHtml(truncated) + '....';
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-// Initialize the app when DOM is loaded
+// Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new MainApp();
+    window.app = new RateMyServerApp();
 });
