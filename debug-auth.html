@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Auth Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Discord OAuth Test & Debug</h1>
+    
+    <button id="start-auth">Start Discord Auth</button>
+    <button id="clear-storage">Clear Storage</button>
+    
+    <div id="logs"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/localDataManager.js"></script>
+    <script src="js/simpleDiscordAuth.js"></script>
+    <script src="js/auth-discord.js"></script>
+    
+    <script>
+        const logs = document.getElementById('logs');
+        
+        function addLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${timestamp}:</strong> ${message}`;
+            logs.appendChild(logDiv);
+            console.log(`[${timestamp}] ${message}`);
+            
+            // Auto scroll to bottom
+            logDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Override console methods to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('ERROR: ' + args.join(' '), 'error');
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('=== Discord Auth Debug Started ===');
+            addLog('CONFIG loaded: ' + !!CONFIG);
+            addLog('Discord Client ID: ' + CONFIG?.OAUTH?.DISCORD_CLIENT_ID);
+            addLog('simpleDiscordAuth available: ' + !!window.simpleDiscordAuth);
+            addLog('authManager available: ' + !!window.authManager);
+            
+            // Check URL for callback
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            
+            if (error) {
+                addLog('Discord OAuth error in URL: ' + error, 'error');
+            } else if (code) {
+                addLog('Discord OAuth code in URL: ' + code.substring(0, 10) + '...', 'success');
+            } else {
+                addLog('No OAuth parameters in URL');
+            }
+            
+            // Check for stored auth result
+            if (window.discordAuthResult) {
+                addLog('Found stored Discord auth result: ' + JSON.stringify(window.discordAuthResult), 'success');
+            }
+            
+            document.getElementById('start-auth').addEventListener('click', () => {
+                addLog('Starting Discord authentication...');
+                if (window.simpleDiscordAuth) {
+                    window.simpleDiscordAuth.startAuth();
+                } else {
+                    addLog('simpleDiscordAuth not available!', 'error');
+                }
+            });
+            
+            document.getElementById('clear-storage').addEventListener('click', () => {
+                localStorage.clear();
+                addLog('Storage cleared');
+            });
+            
+            // Monitor for auth manager
+            let authCheckCount = 0;
+            const checkAuth = () => {
+                authCheckCount++;
+                if (window.authManager) {
+                    addLog(`AuthManager loaded after ${authCheckCount} checks`, 'success');
+                } else if (authCheckCount < 20) {
+                    setTimeout(checkAuth, 100);
+                }
+            };
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

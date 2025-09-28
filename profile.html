@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - GuildCertified</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta property="og:title" content="Profile - GuildCertified" id="og-title">
+    <meta property="og:description" content="Check out this profile on GuildCertified" id="og-description">
+    <meta property="og:image" content="" id="og-image">
+    <meta property="og:url" content="" id="og-url">
+    <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <h1><i class="fab fa-discord"></i> GuildCertified</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#servers" class="nav-link">Browse Servers</a>
+                <div class="nav-auth" id="nav-auth-logged-out">
+                    <button id="login-btn" class="btn btn-outline">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </div>
+                <div class="nav-auth" id="nav-auth-logged-in" style="display: none;">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <div class="user-menu">
+                        <img id="user-avatar" class="user-avatar" src="" alt="User Avatar">
+                        <span id="user-name">User</span>
+                        <div class="dropdown-menu">
+                            <a href="#profile">My Profile</a>
+                            <a href="#" id="setup-server-btn"><i class="fas fa-server"></i> Set Server Up</a>
+                            <a href="#settings">Settings</a>
+                            <a href="#" id="logout-btn">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Profile Content -->
+    <main class="profile-main">
+        <!-- Profile Loading State -->
+        <div id="profile-loading" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Loading profile...</p>
+        </div>
+
+        <!-- Profile Not Found -->
+        <div id="profile-not-found" class="error-container" style="display: none;">
+            <div class="error-content">
+                <i class="fas fa-user-slash"></i>
+                <h2>Profile Not Found</h2>
+                <p>The profile you're looking for doesn't exist or has been removed.</p>
+                <a href="index.html" class="btn btn-primary">Back to Home</a>
+            </div>
+        </div>
+
+        <!-- Profile Content Container -->
+        <div id="profile-content" class="container profile-container" style="display: none;">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-avatar-section">
+                    <img id="profile-avatar" class="profile-avatar" src="" alt="Profile Avatar">
+                    <div class="profile-badges" id="profile-badges">
+                        <!-- Badges coming soon -->
+                        <span class="badge-placeholder">🏆 Badges Coming Soon</span>
+                    </div>
+                </div>
+                
+                <div class="profile-info">
+                    <div class="profile-title">
+                        <h1 id="profile-username">Username</h1>
+                        <div class="profile-type" id="profile-type">
+                            <i class="fas fa-server"></i>
+                            <span>Development Studio</span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Joined <span id="profile-join-date">January 2024</span></span>
+                        </div>
+                        <div class="meta-item" id="profile-verified" style="display: none;">
+                            <i class="fas fa-check-circle verified-badge"></i>
+                            <span>Verified Discord User</span>
+                        </div>
+                    </div>
+
+                    <div class="profile-description" id="profile-description">
+                        <p>User description will appear here...</p>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="profile-social-links" id="profile-social-links">
+                        <!-- Social links will be added dynamically -->
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button id="share-profile-btn" class="btn btn-outline">
+                        <i class="fas fa-share-alt"></i>
+                        <span>Share Profile</span>
+                    </button>
+                    <div id="edit-profile-section" style="display: none;">
+                        <a href="dashboard.html" class="btn btn-primary">
+                            <i class="fas fa-edit"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Content Grid -->
+            <div class="profile-grid">
+                <!-- Statistics Card -->
+                <div class="profile-card stats-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-bar"></i> Profile Statistics</h3>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="reviews-count">0</div>
+                            <div class="stat-label">Reviews Given</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="servers-owned-count">0</div>
+                            <div class="stat-label">Servers Owned</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="profile-views-count">153</div>
+                            <div class="stat-label">Profile Views</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="average-rating">4.8</div>
+                            <div class="stat-label">Average Rating</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reviews -->
+                <div class="profile-card reviews-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-star"></i> Recent Reviews</h3>
+                        <span class="card-subtitle">Latest server reviews</span>
+                    </div>
+                    <div id="profile-reviews-container" class="reviews-list">
+                        <!-- Reviews will be loaded here -->
+                        <div class="empty-state">
+                            <i class="fas fa-star-half-alt"></i>
+                            <p>No reviews yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Owned Servers -->
+                <div class="profile-card servers-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-server"></i> Owned Servers</h3>
+                        <span class="card-subtitle">Servers managed by this user</span>
+                    </div>
+                    <div id="profile-servers-container" class="servers-list">
+                        <div class="coming-soon">
+                            <i class="fas fa-tools"></i>
+                            <h4>Coming Soon!</h4>
+                            <p>Server ownership and management features are being developed.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="profile-card activity-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-activity"></i> Recent Activity</h3>
+                        <span class="card-subtitle">Latest profile activity</span>
+                    </div>
+                    <div id="profile-activity-container" class="activity-list">
+                        <!-- Activity items will be loaded here -->
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <p>No recent activity</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-share-alt"></i> Share Profile</h3>
+                <button class="modal-close" id="share-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="profile-url-input">Profile URL:</label>
+                    <div class="url-input-container">
+                        <input type="text" id="profile-url-input" class="form-input" readonly>
+                        <button id="copy-url-btn" class="btn btn-outline">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="share-buttons">
+                    <h4>Share on:</h4>
+                    <div class="social-share-buttons">
+                        <button id="share-twitter" class="share-btn twitter-btn">
+                            <i class="fab fa-twitter"></i> Twitter
+                        </button>
+                        <button id="share-facebook" class="share-btn facebook-btn">
+                            <i class="fab fa-facebook-f"></i> Facebook
+                        </button>
+                        <button id="share-discord" class="share-btn discord-btn">
+                            <i class="fab fa-discord"></i> Discord
+                        </button>
+                        <button id="share-reddit" class="share-btn reddit-btn">
+                            <i class="fab fa-reddit-alien"></i> Reddit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/logger.js"></script>
+    <script src="js/config.js"></script>
+    <script type="module" src="js/localDataManager.js"></script>
+    <script type="module" src="js/auth-discord.js"></script>
+    <script type="module" src="js/profileViewer.js"></script>
+    
+    <script type="module">
+        import { ProfileViewer } from './js/profileViewer.js';
+        
+        // Initialize profile viewer when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for auth system to be ready (it's initialized automatically by auth-discord.js)
+            setTimeout(() => {
+                try {
+                    // AuthManager is already initialized globally, just use it
+                    console.log('Auth Manager available:', window.authManager ? 'Yes' : 'No');
+                    
+                    // Initialize ProfileViewer
+                    window.profileViewer = new ProfileViewer();
+                    
+                    // Load profile from URL parameters
+                    window.profileViewer.loadProfileFromURL();
+                    
+                } catch (error) {
+                    console.error('Error initializing profile viewer:', error);
+                    document.getElementById('profile-loading').style.display = 'none';
+                    document.getElementById('profile-not-found').style.display = 'block';
+                }
+            }, 500); // Increased timeout to ensure scripts are loaded
+        });
+    </script>
+</body>
+</html>

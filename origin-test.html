@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth2 Origin Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>OAuth2 Origin Test</h1>
+    <button onclick="testOrigin()">Test OAuth2 Origin</button>
+    <div id="result"></div>
+
+    <script>
+        function testOrigin() {
+            const clientId = '985737178271-e74h4nanbcvor55e0fb5du6v9a0eh2vh.apps.googleusercontent.com';
+            const currentOrigin = window.location.origin;
+            
+            document.getElementById('result').innerHTML = `
+                <p><strong>Current Origin:</strong> ${currentOrigin}</p>
+                <p><strong>Client ID:</strong> ${clientId}</p>
+                <p><strong>Expected:</strong> This origin should be in your Google Cloud Console authorized origins</p>
+            `;
+
+            // Try to initialize Google OAuth2
+            if (window.google && window.google.accounts) {
+                try {
+                    const tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: clientId,
+                        scope: 'https://www.googleapis.com/auth/spreadsheets',
+                        callback: (response) => {
+                            document.getElementById('result').innerHTML += '<p style="color: green;">✅ OAuth2 test successful!</p>';
+                        }
+                    });
+                    
+                    document.getElementById('result').innerHTML += '<p style="color: blue;">🔄 OAuth2 client initialized, trying to request token...</p>';
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    
+                } catch (error) {
+                    document.getElementById('result').innerHTML += `<p style="color: red;">❌ OAuth2 Error: ${error.message}</p>`;
+                }
+            } else {
+                document.getElementById('result').innerHTML += '<p style="color: orange;">⚠️ Google APIs not loaded yet, try again in a moment</p>';
+            }
+        }
+
+        // Auto-test after Google APIs load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.google) {
+                    console.log('✅ Google APIs loaded');
+                } else {
+                    console.log('❌ Google APIs not loaded');
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Management Test</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+        .session-info {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px;
+            font-family: monospace;
+        }
+        .session-info h3 {
+            margin-block-start: 0;
+            color: #333;
+        }
+        .session-data {
+            background: #fff;
+            border-inline-start: 4px solid #007cba;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .controls button {
+            margin: 5px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary { background: #007cba; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Session Management Test</h1>
+        <p>This page helps test the session persistence functionality.</p>
+        
+        <div class="session-info">
+            <h3>Current Session Settings</h3>
+            <div class="session-data">
+                <div>Require Auth on New Browser Session: <span id="require-new-session">Yes</span></div>
+                <div>Max Inactivity: <span id="max-duration">30 minutes</span></div>
+                <div>Extend on Activity: <span id="extend-activity">Yes</span></div>
+            </div>
+        </div>
+
+        <div class="session-info">
+            <h3>Current Session Status</h3>
+            <div class="session-data" id="session-status">
+                Loading session data...
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-info" onclick="refreshSessionStatus()">Refresh Status</button>
+            <button class="btn-primary" onclick="simulateAuth()">Simulate Discord Auth</button>
+            <button class="btn-danger" onclick="clearSession()">Clear Session (Simulate Browser Close)</button>
+            <button class="btn-info" onclick="simulateReload()">Reload Page (Should NOT require auth)</button>
+        </div>
+
+        <div class="session-info">
+            <h3>How to Test:</h3>
+            <ol>
+                <li><strong>Close browser tab/window and reopen</strong> - should trigger auth requirement</li>
+                <li>Refresh page while tab is open - should NOT require auth</li>
+                <li>Wait 30 minutes without activity - should expire session (optional timeout)</li>
+                <li>Authenticate and session will persist until browser closes</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script type="module" src="js/localDataManager.js"></script>
+    <script type="module" src="js/auth-discord.js"></script>
+    
+    <script>
+        let authManager;
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait a moment for modules to load
+            setTimeout(async () => {
+                const { AuthManager } = await import('./js/auth-discord.js');
+                authManager = new AuthManager();
+                
+                // Display session settings
+                document.getElementById('require-new-session').textContent = 
+                    authManager.sessionSettings.requireAuthOnNewSession ? 'Yes' : 'No';
+                document.getElementById('max-duration').textContent = 
+                    Math.floor(authManager.sessionSettings.maxDuration / 60000) + ' minutes';
+                document.getElementById('extend-activity').textContent = 
+                    authManager.sessionSettings.extendOnActivity ? 'Yes' : 'No';
+                
+                refreshSessionStatus();
+            }, 100);
+        });
+
+        function refreshSessionStatus() {
+            if (!authManager) return;
+            
+            const sessionData = authManager.getSessionData();
+            const isValid = authManager.isSessionValid();
+            const statusEl = document.getElementById('session-status');
+            
+            if (sessionData) {
+                const now = Date.now();
+                const timeSinceStart = Math.floor((now - sessionData.sessionStart) / 1000);
+                const timeSinceActivity = Math.floor((now - sessionData.lastActivity) / 1000);
+                
+                statusEl.innerHTML = `
+                    <div>Browser Session: <strong>${sessionData.authenticated ? '🔓 Authenticated' : '🔒 Not Authenticated'}</strong></div>
+                    <div>Session Age: ${timeSinceStart}s</div>
+                    <div>Last Activity: ${timeSinceActivity}s ago</div>
+                    <div>Session Valid: <strong>${isValid ? '✅ YES' : '❌ NO'}</strong></div>
+                    <div>Will Require Auth on Close/Reopen: <strong>⚠️ YES</strong></div>
+                `;
+            } else {
+                statusEl.innerHTML = '<div>🆕 New browser session - will require authentication</div>';
+            }
+        }
+
+        function simulateAuth() {
+            if (!authManager) return;
+            
+            // Simulate a successful Discord authentication
+            const mockUser = {
+                id: '123456789',
+                name: 'Test User',
+                avatar: null,
+                profile_completed: true
+            };
+            
+            authManager.currentUser = mockUser;
+            authManager.authState = 'logged-in';
+            
+            // Mark session as authenticated
+            const sessionData = authManager.updateSession();
+            sessionData.authenticated = true;
+            sessionStorage.setItem('discord_session', JSON.stringify(sessionData));
+            
+            localStorage.setItem('currentUser', JSON.stringify(mockUser));
+            localStorage.setItem('authState', 'logged-in');
+            
+            alert('✅ Mock authentication successful! Session is now authenticated and will persist until browser closes.');
+            refreshSessionStatus();
+        }
+
+        function clearSession() {
+            if (!authManager) return;
+            
+            // Clear session storage (simulates browser close/reopen)
+            authManager.clearSession();
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('authState');
+            
+            alert('🗑️ Session cleared! This simulates closing and reopening the browser - next auth will be required.');
+            refreshSessionStatus();
+        }
+
+        function simulateReload() {
+            location.reload();
+        }
+
+        // Auto-refresh status every 5 seconds
+        setInterval(refreshSessionStatus, 5000);
+    </script>
+</body>
+</html>

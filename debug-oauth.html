@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 Debug - GuildCertified</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .debug-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #00b67a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #00a870;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 OAuth2 Debug Console</h1>
+        <p>This page helps debug the Google OAuth2 integration step by step.</p>
+        
+        <div id="status"></div>
+        
+        <button onclick="checkSystems()">🔧 Check Systems</button>
+        <button onclick="testOAuth2Init()">🚀 Test OAuth2 Init</button>
+        <button onclick="testGoogleLogin()">🔑 Test Google Login</button>
+        <button onclick="checkAuthManager()">👤 Check Auth Manager</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/localDataManager.js"></script>
+    <script src="js/oauth2SheetsManager.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/authOAuth2Bridge.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#6c757d';
+            logDiv.innerHTML += `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function clearLogs() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function checkSystems() {
+            log('🔍 Checking system availability...', 'info');
+            
+            const systems = [
+                { name: 'CONFIG', obj: window.CONFIG },
+                { name: 'localData', obj: window.localData },
+                { name: 'oauth2Sheets', obj: window.oauth2Sheets },
+                { name: 'AuthManager (class)', obj: window.AuthManager },
+                { name: 'authManager (instance)', obj: window.authManager },
+                { name: 'authOAuth2Bridge', obj: window.authOAuth2Bridge }
+            ];
+
+            let allGood = true;
+            systems.forEach(system => {
+                if (system.obj) {
+                    log(`✅ ${system.name}: Available`, 'success');
+                } else {
+                    log(`❌ ${system.name}: Not found`, 'error');
+                    allGood = false;
+                }
+            });
+
+            // Check OAuth2 config
+            if (CONFIG && CONFIG.OAUTH && CONFIG.OAUTH.GOOGLE_CLIENT_ID) {
+                const clientId = CONFIG.OAUTH.GOOGLE_CLIENT_ID;
+                if (clientId !== 'PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE') {
+                    log(`✅ OAuth2 Client ID: Configured (${clientId.substr(0, 20)}...)`, 'success');
+                } else {
+                    log(`❌ OAuth2 Client ID: Not configured`, 'error');
+                    allGood = false;
+                }
+            }
+
+            updateStatus(allGood ? '✅ All systems ready!' : '❌ Some systems missing', allGood ? 'success' : 'error');
+        }
+
+        async function testOAuth2Init() {
+            log('🚀 Testing OAuth2 initialization...', 'info');
+            
+            try {
+                if (!window.oauth2Sheets) {
+                    log('❌ oauth2Sheets not available', 'error');
+                    return;
+                }
+
+                await oauth2Sheets.initialize();
+                log('✅ OAuth2 initialized successfully', 'success');
+                updateStatus('✅ OAuth2 ready for sign-in', 'success');
+                
+            } catch (error) {
+                log(`❌ OAuth2 initialization failed: ${error.message}`, 'error');
+                updateStatus('❌ OAuth2 initialization failed', 'error');
+            }
+        }
+
+        async function testGoogleLogin() {
+            log('🔑 Testing Google login...', 'info');
+            
+            try {
+                if (!window.oauth2Sheets) {
+                    log('❌ oauth2Sheets not available', 'error');
+                    return;
+                }
+
+                log('🔄 Starting OAuth2 sign-in flow...', 'info');
+                await oauth2Sheets.signIn();
+                
+            } catch (error) {
+                log(`❌ Google login failed: ${error.message}`, 'error');
+                updateStatus('❌ Google login failed', 'error');
+            }
+        }
+
+        function checkAuthManager() {
+            log('👤 Checking AuthManager details...', 'info');
+            
+            if (window.authManager) {
+                log('✅ authManager instance found', 'success');
+                log(`📊 Current user: ${authManager.currentUser ? authManager.currentUser.name : 'None'}`, 'info');
+                log(`📊 Auth state: ${authManager.authState}`, 'info');
+                
+                if (typeof authManager.loginWithGoogle === 'function') {
+                    log('✅ loginWithGoogle method exists', 'success');
+                } else {
+                    log('❌ loginWithGoogle method missing', 'error');
+                }
+            } else {
+                log('❌ authManager instance not found', 'error');
+            }
+        }
+
+        // Listen for auth state changes
+        document.addEventListener('authStateChanged', (event) => {
+            const { isSignedIn, user } = event.detail;
+            if (isSignedIn) {
+                log(`🎉 OAuth2 SUCCESS: ${user.name} (${user.email})`, 'success');
+                updateStatus(`🎉 Signed in as ${user.name}`, 'success');
+            }
+        });
+
+        // Auto-check systems on load
+        window.onload = () => {
+            setTimeout(checkSystems, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Auth Test</title>
+</head>
+<body>
+    <h1>Discord Auth Debug</h1>
+    <button id="test-btn">Test Discord Auth</button>
+    <div id="output"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/discordAuth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const output = document.getElementById('output');
+            
+            function log(message) {
+                console.log(message);
+                output.innerHTML += '<p>' + message + '</p>';
+            }
+            
+            log('=== Discord Auth Debug ===');
+            log('CONFIG available: ' + (typeof CONFIG !== 'undefined'));
+            log('CONFIG.OAUTH: ' + JSON.stringify(CONFIG?.OAUTH));
+            log('DiscordAuth class available: ' + (typeof DiscordAuth !== 'undefined'));
+            
+            if (typeof DiscordAuth !== 'undefined') {
+                try {
+                    const discordAuth = new DiscordAuth({
+                        clientId: CONFIG.OAUTH.DISCORD_CLIENT_ID,
+                        redirectUri: 'http://localhost:8000/callback',
+                        scopes: ['identify', 'email']
+                    });
+                    log('DiscordAuth instance created successfully');
+                    log('authenticate method exists: ' + (typeof discordAuth.authenticate === 'function'));
+                    log('signIn method exists: ' + (typeof discordAuth.signIn === 'function'));
+                    
+                    document.getElementById('test-btn').addEventListener('click', () => {
+                        log('Testing Discord authentication...');
+                        discordAuth.signIn();
+                    });
+                } catch (error) {
+                    log('Error creating DiscordAuth: ' + error.message);
+                }
+            } else {
+                log('DiscordAuth class not found!');
+            }
+        });
+    </script>
+</body>
+</html>

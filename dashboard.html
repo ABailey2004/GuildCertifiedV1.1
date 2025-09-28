@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - GuildCertified</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <h1><i class="fab fa-discord"></i> GuildCertified</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#servers" class="nav-link">Browse Servers</a>
+                <div class="nav-auth" id="nav-auth-logged-out">
+                    <button id="login-btn" class="btn btn-outline">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </div>
+                <div class="nav-auth" id="nav-auth-logged-in" style="display: none;">
+                    <a href="dashboard.html" class="nav-link active">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <div class="user-menu">
+                        <img id="user-avatar" class="user-avatar" src="" alt="User Avatar">
+                        <span id="user-name">User</span>
+                        <div class="dropdown-menu">
+                            <a href="#profile">My Profile</a>
+                            <a href="#" id="setup-server-btn"><i class="fas fa-server"></i> Set Server Up</a>
+                            <a href="#settings">Settings</a>
+                            <a href="#" id="logout-btn">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-main">
+        <!-- Dashboard Section -->
+        <section class="dashboard">
+            <div class="container">
+                <div class="dashboard-header">
+                    <h1>Your Dashboard</h1>
+                    <p id="dashboard-welcome">Welcome back! Manage your profile and see your reviews.</p>
+                </div>
+                
+                <div class="dashboard-grid">
+                    <!-- Profile Overview -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-user"></i> Profile Overview</h3>
+                            <button class="btn btn-sm btn-outline" id="edit-profile-btn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="profile-preview">
+                            <div class="profile-avatar">
+                                <img id="dashboard-avatar" src="" alt="Profile Picture">
+                                <button class="avatar-upload-btn" id="upload-avatar" title="Upload profile picture">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+                            <div class="profile-info">
+                                <h4 id="dashboard-profile-name">Your Name</h4>
+                                <span class="profile-type" id="dashboard-profile-type">Discord Server</span>
+                                <p id="dashboard-profile-description">Your description...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Your Statistics</h3>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-number" id="user-reviews-count">-</span>
+                                <span class="stat-label">Reviews Received</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="user-avg-rating">-</span>
+                                <span class="stat-label">Average Rating</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="profile-views">-</span>
+                                <span class="stat-label">Profile Views</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="action-btn" id="view-public-profile">
+                                <i class="fas fa-external-link-alt"></i>
+                                <span>View Public Profile</span>
+                            </button>
+                            <button class="action-btn" id="manage-social-links">
+                                <i class="fas fa-link"></i>
+                                <span>Manage Social Links</span>
+                            </button>
+                            <button class="action-btn" id="upload-logo">
+                                <i class="fas fa-image"></i>
+                                <span>Upload Profile Picture</span>
+                            </button>
+                            <button class="action-btn" id="update-description">
+                                <i class="fas fa-edit"></i>
+                                <span>Update Description</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Reviews -->
+                    <div class="dashboard-card full-width">
+                        <div class="card-header">
+                            <h3><i class="fas fa-star"></i> Recent Reviews</h3>
+                            <a href="#all-reviews" class="btn btn-sm btn-outline">View All</a>
+                        </div>
+                        <div id="recent-reviews-container">
+                            <div class="no-reviews">
+                                <i class="fas fa-star-o"></i>
+                                <p>No reviews yet. Share your profile to start receiving reviews!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Links Management -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-share-alt"></i> Social Links</h3>
+                        </div>
+                        <div class="social-links-display" id="social-links-display">
+                            <!-- Social links will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Profile Analytics -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-analytics"></i> Profile Analytics</h3>
+                        </div>
+                        <div class="analytics-content">
+                            <div class="analytics-item">
+                                <i class="fas fa-eye"></i>
+                                <div>
+                                    <span class="analytics-number" id="monthly-views">0</span>
+                                    <span class="analytics-label">Views This Month</span>
+                                </div>
+                            </div>
+                            <div class="analytics-item">
+                                <i class="fas fa-star"></i>
+                                <div>
+                                    <span class="analytics-number" id="monthly-reviews">0</span>
+                                    <span class="analytics-label">Reviews This Month</span>
+                                </div>
+                            </div>
+                            <div class="analytics-item">
+                                <i class="fas fa-chart-line"></i>
+                                <div>
+                                    <span class="analytics-number" id="rating-trend">+0.0</span>
+                                    <span class="analytics-label">Rating Trend</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Sign In to GuildCertified</h2>
+            <p class="modal-subtitle">Choose your preferred sign-in method</p>
+            
+            <div class="oauth-buttons">
+                <button id="google-login" class="btn btn-oauth google">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+                <button id="facebook-login" class="btn btn-oauth facebook">
+                    <i class="fab fa-facebook-f"></i> Continue with Facebook
+                </button>
+                <button id="discord-login" class="btn btn-oauth discord">
+                    <i class="fab fa-discord"></i> Continue with Discord
+                </button>
+                <button id="github-login" class="btn btn-oauth github">
+                    <i class="fab fa-github"></i> Continue with GitHub
+                </button>
+            </div>
+            
+            <div class="login-footer">
+                <p>By signing in, you agree to our Terms of Service and Privacy Policy</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Setup Modal -->
+    <div id="profile-setup-modal" class="modal">
+        <div class="modal-content large">
+            <h2>Welcome to GuildCertified! 🎉</h2>
+            <p class="modal-subtitle">Let's set up your profile to get started</p>
+            
+            <form id="profile-setup-form">
+                <div class="setup-step active" data-step="1">
+                    <h3>What best describes you?</h3>
+                    <div class="profile-type-grid">
+                        <div class="profile-type-card" data-type="discord-server">
+                            <i class="fab fa-discord"></i>
+                            <h4>Discord Server</h4>
+                            <p>I own or manage a Discord server</p>
+                        </div>
+                        <div class="profile-type-card" data-type="company">
+                            <i class="fas fa-building"></i>
+                            <h4>Company</h4>
+                            <p>I represent a business or organization</p>
+                        </div>
+                        <div class="profile-type-card" data-type="store">
+                            <i class="fas fa-store"></i>
+                            <h4>Store/Shop</h4>
+                            <p>I run an online or physical store</p>
+                        </div>
+                        <div class="profile-type-card" data-type="dev-studio">
+                            <i class="fas fa-code"></i>
+                            <h4>Development Studio</h4>
+                            <p>I'm part of a game/software development team</p>
+                        </div>
+                        <div class="profile-type-card" data-type="content-creator">
+                            <i class="fas fa-video"></i>
+                            <h4>Content Creator</h4>
+                            <p>I create content (YouTube, Twitch, etc.)</p>
+                        </div>
+                        <div class="profile-type-card" data-type="individual">
+                            <i class="fas fa-user"></i>
+                            <h4>Individual</h4>
+                            <p>I'm just here to review and discover</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setup-step" data-step="2">
+                    <h3>Tell us about yourself</h3>
+                    <div class="form-group">
+                        <label for="profile-name">Display Name</label>
+                        <input type="text" id="profile-name" required placeholder="Your name or brand name">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-description">Description</label>
+                        <textarea id="profile-description" rows="3" placeholder="Brief description of who you are or what you do..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-website">Website (Optional)</label>
+                        <input type="url" id="profile-website" placeholder="https://yourwebsite.com">
+                    </div>
+                </div>
+
+                <div class="setup-step" data-step="3">
+                    <h3>Social Links & Contact</h3>
+                    <div class="social-links-grid">
+                        <div class="form-group">
+                            <label for="discord-link"><i class="fab fa-discord"></i> Discord</label>
+                            <input type="text" id="discord-link" placeholder="Discord invite or username">
+                        </div>
+                        <div class="form-group">
+                            <label for="instagram-link"><i class="fab fa-instagram"></i> Instagram</label>
+                            <input type="text" id="instagram-link" placeholder="@username or full URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="youtube-link"><i class="fab fa-youtube"></i> YouTube</label>
+                            <input type="url" id="youtube-link" placeholder="Channel URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="twitter-link"><i class="fab fa-twitter"></i> Twitter</label>
+                            <input type="text" id="twitter-link" placeholder="@username or full URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="twitch-link"><i class="fab fa-twitch"></i> Twitch</label>
+                            <input type="text" id="twitch-link" placeholder="Channel name or URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="github-link"><i class="fab fa-github"></i> GitHub</label>
+                            <input type="text" id="github-link" placeholder="Username or repository URL">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setup-navigation">
+                    <button type="button" id="prev-step" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" id="next-step" class="btn btn-primary">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" id="finish-setup" class="btn btn-primary" style="display: none;">
+                        <i class="fas fa-check"></i> Complete Setup
+                    </button>
+                </div>
+
+                <div class="setup-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="inline-size: 33%"></div>
+                    </div>
+                    <span class="progress-text">Step 1 of 3</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 GuildCertified. Helping you find the best Discord communities.</p>
+        </div>
+    </footer>
+
+    <script src="js/logger.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/localDataManager.js"></script>
+    <script src="js/simpleDiscordAuth.js"></script>
+    <script src="js/auth-discord.js"></script>
+    <script src="js/profileSetup.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/googleSheets.js"></script>
+    <script>
+        // Dashboard-specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if user is logged in using the correct auth manager
+            const authManager = window.authManager;
+            const storedUser = localStorage.getItem('currentUser');
+            const authState = localStorage.getItem('authState');
+            
+            const isLoggedIn = (authManager && authManager.authState === 'logged-in') || 
+                             (storedUser && (authState === 'logged-in' || authState === 'setup-required'));
+            
+            if (!isLoggedIn) {
+                console.log('Initial auth check failed, giving auth system time to load...');
+                // Give auth system time to load
+                setTimeout(() => {
+                    // Check authentication using the correct auth manager and localStorage
+                    const authManager = window.authManager;
+                    const storedUser = localStorage.getItem('currentUser');
+                    const authState = localStorage.getItem('authState');
+                    
+                    const isLoggedIn = (authManager && authManager.authState === 'logged-in') || 
+                                     (storedUser && (authState === 'logged-in' || authState === 'setup-required'));
+                    
+                    if (!isLoggedIn) {
+                        console.log('User not authenticated, redirecting to home...');
+                        window.location.href = 'index.html';
+                    } else {
+                        console.log('User authenticated, loading dashboard...');
+                        // User is logged in, load dashboard
+                        if (window.dashboard) {
+                            window.dashboard.loadDashboardData();
+                        }
+                    }
+                }, 500);
+            } else {
+                console.log('Auth manager available, loading dashboard immediately...');
+                // User is logged in, load dashboard immediately
+                if (window.dashboard) {
+                    window.dashboard.loadDashboardData();
+                }
+            }
+        });
+    </script>
+
+    <!-- Description Edit Modal -->
+    <div id="description-edit-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Description</h3>
+                <button class="modal-close" id="description-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="description-textarea">Your Description:</label>
+                    <textarea 
+                        id="description-textarea" 
+                        class="form-input" 
+                        rows="6" 
+                        placeholder="Tell others about yourself, your server, or your development studio..."
+                        maxlength="500"
+                    ></textarea>
+                    <div class="character-count">
+                        <span id="char-count">0</span>/500 characters
+                    </div>
+                </div>
+                <div class="form-group">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        This description will appear on your public profile and help others understand who you are.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="description-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="description-save-btn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Description
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Social Links Edit Modal -->
+    <div id="social-links-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-link"></i> Manage Social Links</h3>
+                <button class="modal-close" id="social-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add your social media links:</label>
+                    <div id="social-links-container">
+                        <!-- Social link inputs will be added here dynamically -->
+                    </div>
+                    <button id="add-social-link" class="btn btn-outline btn-small">
+                        <i class="fas fa-plus"></i> Add Link
+                    </button>
+                </div>
+                <div class="form-group">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Add links to your social media profiles, website, or other platforms. These will appear on your public profile.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="social-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="social-save-btn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Links
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Setup Modal -->
+    <div id="server-setup-modal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3><i class="fas fa-server"></i> Set Up Your Server</h3>
+                <button class="modal-close" onclick="document.getElementById('server-setup-modal').style.display='none'; document.body.style.overflow='auto';">&times;</button>
+            </div>
+            
+            <div class="setup-step active" id="server-basic-info">
+                <h4>Basic Server Information</h4>
+                <div class="form-group">
+                    <label for="server-name">Server Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="server-name" placeholder="Enter your Discord server name" maxlength="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="server-description">Server Description <span style="color: #ef4444;">*</span></label>
+                    <textarea id="server-description" placeholder="Describe your server, its purpose, and what makes it special..." rows="4" maxlength="500" required></textarea>
+                    <div class="character-count">
+                        <span id="description-count">0</span> / 500 characters
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="server-category">Server Category <span style="color: #ef4444;">*</span></label>
+                    <select id="server-category" required>
+                        <option value="">Select a category</option>
+                        <option value="gaming">Gaming</option>
+                        <option value="community">Community</option>
+                        <option value="education">Education</option>
+                        <option value="technology">Technology</option>
+                        <option value="art">Art & Creative</option>
+                        <option value="music">Music</option>
+                        <option value="anime">Anime & Manga</option>
+                        <option value="sports">Sports</option>
+                        <option value="business">Business</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="server-invite">Discord Invite Link <span style="color: #ef4444;">*</span></label>
+                    <input type="url" id="server-invite" placeholder="https://discord.gg/yourinvite" required>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Create a permanent invite link in your Discord server settings
+                    </small>
+                </div>
+            </div>
+            
+            <div class="setup-step" id="server-additional-info">
+                <h4>Additional Information</h4>
+                <div class="form-group">
+                    <label for="server-tags">Tags (Optional)</label>
+                    <input type="text" id="server-tags" placeholder="gaming, friendly, active, beginner-friendly">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Separate tags with commas to help users find your server
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="server-logo">Server Logo/Icon (Optional)</label>
+                    <div class="logo-upload-container">
+                        <div class="logo-preview" id="server-logo-preview">
+                            <i class="fas fa-image"></i>
+                            <span>No logo selected</span>
+                        </div>
+                        <input type="file" id="server-logo" accept="image/*">
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Upload your server's icon or logo (PNG, JPG, max 2MB)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="server-rules">Server Rules & Guidelines (Optional)</label>
+                    <textarea id="server-rules" placeholder="List your server's main rules and guidelines..." rows="4" maxlength="1000"></textarea>
+                    <div class="character-count">
+                        <span id="rules-count">0</span> / 1000 characters
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="server-public" checked>
+                        Make server publicly visible for reviews
+                    </label>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        When enabled, your server will appear in the browse section and can receive public reviews
+                    </small>
+                </div>
+            </div>
+            
+            <div class="setup-navigation">
+                <button id="server-prev-btn" class="btn btn-secondary" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+                <div class="setup-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="inline-size: 50%;"></div>
+                    </div>
+                    <div class="progress-text">Step <span id="current-step">1</span> of 2</div>
+                </div>
+                <button id="server-next-btn" class="btn btn-primary">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button id="server-submit-btn" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-rocket"></i> Launch Server
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

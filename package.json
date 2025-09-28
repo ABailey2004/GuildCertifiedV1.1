@@ -1,0 +1,28 @@
+{
+  "name": "guildcertified",
+  "version": "1.0.0",
+  "description": "A Discord server review platform inspired by Trustpilot",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "live-server --port=8000"
+  },
+  "keywords": [
+    "discord",
+    "server",
+    "review",
+    "rating",
+    "trustpilot",
+    "google-sheets"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/guildcertified.git"
+  },
+  "homepage": "https://yourusername.github.io/guildcertified"
+}

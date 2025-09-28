@@ -1,0 +1,319 @@
+<!DOCTY        <h3>🔐 OAuth2 + Google Sheets Testing</h3>
+        <button onclick="testOAuth2Setup()">🔑 Test OAuth2 Setup</button>
+        <button onclick="testOAuth2SignIn()">📝 Test OAuth2 Sign In</button>
+        <button onclick="testInitializeSheets()">📋 Initialize Google Sheets</button>
+        <button onclick="testAuthBridge()">🌉 Test Auth Bridge Integration</button>tml>
+<html lang="en">
+<head>
+    <meta cha        <button onclick="testFullConnection()">🔗 Test Full Connection</button>
+        <button onclick="testReadSheet()">📖 Test Read from Sheet</button>
+        <button onclick="testWriteSheet()">✍️ Test Write to Sheet</button>
+        <hr>
+        <h3>� OAuth2 + Google Sheets Testing</h3>
+        <button onclick="testOAuth2Setup()">🔑 Test OAuth2 Setup</button>
+        <button onclick="testOAuth2SignIn()">📝 Test OAuth2 Sign In</button>
+        <button onclick="testInitializeSheets()">📋 Initialize Google Sheets</button>
+        
+        <hr>
+        <h3>�🚀 Local Data Testing (Fallback)</h3>
+        <button onclick="testLocalData()">💾 Test Local Data Storage</button>
+        <button onclick="showLocalStats()">📊 Show Local Data Stats</button>
+        <button onclick="clearLocalData()">🗑️ Clear Local Data</button>="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #00b67a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #00a870;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Google Sheets Connection Test</h1>
+        <p>This page will test if we can read from and write to your Google Sheet.</p>
+        
+        <button onclick="testFullConnection()">� Test Full Connection</button>
+        <button onclick="initializeSheets()">🚀 Initialize Sheet Headers</button>
+        <button onclick="testReadSheet()">📖 Test Read from Sheet</button>
+        <button onclick="testWriteSheet()">✍️ Test Write to Sheet</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/googleSheetsManager.js"></script>
+    <script src="js/localDataManager.js"></script>
+    <script src="js/oauth2SheetsManager.js"></script>
+    <script src="js/authOAuth2Bridge.js"></script>
+    <script>
+        const API_KEY = CONFIG.GOOGLE_SHEETS.API_KEY;
+        const SHEET_ID = CONFIG.GOOGLE_SHEETS.SHEET_ID;
+        
+        function showResult(message, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = message;
+        }
+
+        async function testReadSheet() {
+            try {
+                showResult('🔄 Testing read access...', true);
+                
+                // First get sheet metadata to see what sheets exist
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`;
+                const metaResponse = await fetch(metadataUrl);
+                const metaData = await metaResponse.json();
+                
+                if (!metaResponse.ok) {
+                    showResult(`❌ ERROR: ${metaData.error.message}<br>Status: ${metaResponse.status}`, false);
+                    return;
+                }
+                
+                // Get the first sheet name
+                const firstSheet = metaData.sheets[0].properties.title;
+                showResult(`📋 Found sheets: ${metaData.sheets.map(s => s.properties.title).join(', ')}<br>🔄 Reading from "${firstSheet}"...`, true);
+                
+                // Now try to read from the first sheet
+                const range = `${firstSheet}!A1:Z10`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const rowCount = data.values ? data.values.length : 0;
+                    showResult(`✅ READ SUCCESS! Found ${rowCount} rows in "${firstSheet}":<br><pre>${JSON.stringify(data, null, 2)}</pre>`, true);
+                } else {
+                    showResult(`❌ ERROR: ${data.error.message}<br>Status: ${response.status}`, false);
+                }
+                
+            } catch (error) {
+                showResult(`❌ NETWORK ERROR: ${error.message}`, false);
+            }
+        }
+
+        async function testWriteSheet() {
+            showResult(`❌ WRITE LIMITATION: Google Sheets API requires OAuth2 for write operations, not API keys.<br><br>
+            📋 <strong>Solutions:</strong><br>
+            1. <strong>Set up OAuth2</strong> (recommended for production)<br>
+            2. <strong>Use Google Forms</strong> for data collection<br>
+            3. <strong>Manual data entry</strong> for now<br><br>
+            
+            🔄 <strong>For now:</strong> We can read data from sheets and save user data to localStorage until OAuth is set up.<br><br>
+            
+            � <strong>Next steps:</strong><br>
+            1. Create tabs in your sheet: Users, Servers, Reviews, Profiles<br>
+            2. Add sample data manually<br>
+            3. Test reading that data with the Read button`, true);
+        }
+
+        async function testFullConnection() {
+            showResult('🔄 Testing full connection...', true);
+            
+            // Test 1: Check if sheet exists and is accessible
+            try {
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`;
+                const response = await fetch(metadataUrl);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const sheets = data.sheets.map(sheet => sheet.properties.title);
+                    showResult(`✅ Sheet Connection SUCCESS!<br>
+                        📊 Sheet Name: ${data.properties.title}<br>
+                        📋 Available Tabs: ${sheets.join(', ')}<br>
+                        🔑 API Key: Working<br>
+                        📝 Sheet ID: ${SHEET_ID}`, true);
+                } else {
+                    showResult(`❌ CONNECTION FAILED: ${data.error.message}`, false);
+                }
+                
+            } catch (error) {
+                showResult(`❌ CONNECTION ERROR: ${error.message}`, false);
+            }
+        }
+
+        // Local data testing functions
+        function testLocalData() {
+            try {
+                showResult('🔄 Testing local data storage...', true);
+                
+                // Add test user
+                const testUser = localData.addUser({
+                    email: 'john@example.com',
+                    name: 'John Doe',
+                    provider: 'google',
+                    profileType: 'server'
+                });
+                
+                // Add test server
+                const testServer = localData.addServer({
+                    name: 'Awesome Gaming Server',
+                    description: 'Best gaming community ever!',
+                    category: 'gaming',
+                    ownerId: testUser.id
+                });
+                
+                // Add test review
+                const testReview = localData.addReview({
+                    serverId: testServer.id,
+                    userId: testUser.id,
+                    rating: 5,
+                    comment: 'Amazing server! Great community and active admins.'
+                });
+                
+                showResult(`✅ LOCAL DATA SUCCESS!<br>
+                👤 Created user: ${testUser.name}<br>
+                🎮 Created server: ${testServer.name}<br>
+                ⭐ Added review: ${testReview.rating}/5 stars<br>
+                💾 All data saved to localStorage!`, true);
+                
+            } catch (error) {
+                showResult(`❌ LOCAL DATA ERROR: ${error.message}`, false);
+            }
+        }
+        
+        function showLocalStats() {
+            const stats = localData.getStats();
+            const data = localData.exportAllData();
+            
+            showResult(`📊 LOCAL DATA STATISTICS:<br>
+            👥 Total Users: ${stats.totalUsers}<br>
+            🎮 Total Servers: ${stats.totalServers}<br>
+            ⭐ Total Reviews: ${stats.totalReviews}<br>
+            📈 Average Rating: ${stats.avgRating}/5<br><br>
+            💾 Raw Data:<br>
+            <pre>${JSON.stringify(data, null, 2)}</pre>`, true);
+        }
+        
+        function clearLocalData() {
+            localData.clearAllData();
+            showResult('🗑️ All local data cleared!', true);
+        }
+
+        // OAuth2 testing functions
+        async function testOAuth2Setup() {
+            try {
+                showResult('🔄 Testing OAuth2 setup...', true);
+                
+                const clientId = CONFIG.OAUTH.GOOGLE_CLIENT_ID;
+                if (clientId === 'PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE') {
+                    showResult(`❌ OAuth2 CLIENT ID NOT SET!<br><br>
+                    📋 <strong>Steps to fix:</strong><br>
+                    1. Go to Google Cloud Console → Credentials<br>
+                    2. Create OAuth 2.0 Client ID<br>
+                    3. Copy the Client ID<br>
+                    4. I'll update the config file for you!`, false);
+                    return;
+                }
+                
+                await oauth2Sheets.initialize();
+                showResult(`✅ OAuth2 SETUP SUCCESS!<br>
+                🔑 Client ID configured: ${clientId.substr(0, 20)}...<br>
+                📊 Google APIs loaded<br>
+                🚀 Ready for authentication!`, true);
+                
+            } catch (error) {
+                showResult(`❌ OAuth2 SETUP FAILED: ${error.message}`, false);
+            }
+        }
+
+        async function testOAuth2SignIn() {
+            try {
+                showResult('🔄 Starting OAuth2 sign-in flow...', true);
+                await oauth2Sheets.signIn();
+                // Result will be shown by the auth callback
+            } catch (error) {
+                showResult(`❌ OAuth2 SIGN-IN FAILED: ${error.message}`, false);
+            }
+        }
+
+        async function testInitializeSheets() {
+            try {
+                showResult('🔄 Initializing Google Sheets structure...', true);
+                
+                if (!oauth2Sheets.isSignedIn) {
+                    showResult('❌ Please sign in with OAuth2 first!', false);
+                    return;
+                }
+                
+                await oauth2Sheets.initializeSheets();
+                showResult('✅ Google Sheets initialized with headers!', true);
+                
+            } catch (error) {
+                showResult(`❌ SHEET INITIALIZATION FAILED: ${error.message}`, false);
+            }
+        }
+
+        async function testAuthBridge() {
+            try {
+                showResult('🔄 Testing Auth Bridge integration...', true);
+                
+                if (window.authOAuth2Bridge) {
+                    await authOAuth2Bridge.testOAuth2Integration();
+                    showResult('✅ Auth Bridge test initiated! Check console for details.', true);
+                } else {
+                    showResult('❌ Auth Bridge not loaded!', false);
+                }
+            } catch (error) {
+                showResult(`❌ Auth Bridge test failed: ${error.message}`, false);
+            }
+        }
+
+        // Listen for auth state changes
+        document.addEventListener('authStateChanged', (event) => {
+            const { isSignedIn, user } = event.detail;
+            if (isSignedIn) {
+                showResult(`✅ OAUTH2 SIGN-IN SUCCESS!<br>
+                👤 Welcome: ${user.name}<br>
+                📧 Email: ${user.email}<br>
+                🔄 User data saved to Google Sheets!<br>
+                🎉 Authentication complete!`, true);
+            }
+        });
+
+        // Auto-test on page load
+        window.onload = () => {
+            testFullConnection();
+        };
+    </script>
+</body>
+</html>

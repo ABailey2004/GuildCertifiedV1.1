@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Auth System Test</h1>
+    <button id="test-discord">Test Discord Login</button>
+    <div id="log"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/localDataManager.js"></script>
+    <script src="js/simpleDiscordAuth.js"></script>
+    <script src="js/auth-discord.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const log = document.getElementById('log');
+            
+            function addLog(message) {
+                console.log(message);
+                log.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>';
+            }
+            
+            addLog('Page loaded');
+            addLog('CONFIG available: ' + (typeof CONFIG !== 'undefined'));
+            addLog('simpleDiscordAuth available: ' + (typeof window.simpleDiscordAuth !== 'undefined'));
+            addLog('authManager available: ' + (typeof window.authManager !== 'undefined'));
+            
+            document.getElementById('test-discord').addEventListener('click', () => {
+                addLog('Testing Discord login...');
+                if (window.simpleDiscordAuth) {
+                    addLog('Starting Discord auth...');
+                    window.simpleDiscordAuth.startAuth();
+                } else {
+                    addLog('simpleDiscordAuth not available!');
+                }
+            });
+            
+            // Check for auth callback
+            setTimeout(() => {
+                if (window.simpleDiscordAuth) {
+                    const callback = window.simpleDiscordAuth.checkForCallback();
+                    if (callback) {
+                        addLog('Auth callback detected: ' + JSON.stringify(callback));
+                    }
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal OAuth Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>Minimal OAuth Test</h1>
+    <div id="g_id_onload"
+         data-client_id="985737178271-e74h4nanbcvor55e0fb5du6v9a0eh2vh.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    
+    <div id="result"></div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            document.getElementById('result').innerHTML = `
+                <h2>Success!</h2>
+                <p><strong>Name:</strong> ${payload.name}</p>
+                <p><strong>Email:</strong> ${payload.email}</p>
+                <p><strong>Picture:</strong> <img src="${payload.picture}" width="50"></p>
+            `;
+        }
+
+        window.onload = function() {
+            console.log('Current origin:', window.location.origin);
+            console.log('Expected origin: http://localhost:8000');
+        };
+    </script>
+</body>
+</html>

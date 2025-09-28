@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Alternative OAuth Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #357ae8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔑 Alternative OAuth Test</h1>
+    <p>This test uses the OAuth2 redirect flow instead of popup/credential flow.</p>
+    
+    <button onclick="startOAuthFlow()">🚀 Test OAuth Redirect Flow</button>
+    <button onclick="usePopupFlow()">📱 Test Popup Flow</button>
+    <button onclick="clearData()">🗑️ Clear Data</button>
+    
+    <div id="result" class="result" style="display: none;"></div>
+
+    <script>
+        const CLIENT_ID = '985737178271-e74h4nanbcvor55e0fb5du6v9a0eh2vh.apps.googleusercontent.com';
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        const SCOPE = 'email profile';
+
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+            resultDiv.innerHTML = message;
+        }
+
+        // Method 1: OAuth2 Redirect Flow
+        function startOAuthFlow() {
+            const params = new URLSearchParams({
+                client_id: CLIENT_ID,
+                redirect_uri: REDIRECT_URI,
+                response_type: 'code',
+                scope: SCOPE,
+                access_type: 'offline',
+                prompt: 'consent'
+            });
+
+            const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+            showResult('🔄 Redirecting to Google for authentication...', false);
+            
+            // Redirect to Google OAuth
+            window.location.href = authUrl;
+        }
+
+        // Method 2: Popup Flow (simpler)
+        function usePopupFlow() {
+            const params = new URLSearchParams({
+                client_id: CLIENT_ID,
+                redirect_uri: REDIRECT_URI,
+                response_type: 'token id_token',
+                scope: SCOPE,
+                nonce: Math.random().toString(36).substring(2, 15)
+            });
+
+            const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+            
+            showResult('🔄 Opening popup for authentication...', false);
+            
+            const popup = window.open(authUrl, 'oauth', 'width=500,height=600');
+            
+            // Listen for popup messages
+            const checkClosed = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(checkClosed);
+                    showResult('❌ Popup was closed without completing authentication', true);
+                }
+            }, 1000);
+
+            // Listen for redirect back
+            window.addEventListener('message', (event) => {
+                if (event.origin !== window.location.origin) return;
+                
+                clearInterval(checkClosed);
+                popup.close();
+                
+                if (event.data.success) {
+                    showResult(`✅ Success! User: ${event.data.user.name} (${event.data.user.email})`, false);
+                } else {
+                    showResult(`❌ Error: ${event.data.error}`, true);
+                }
+            });
+        }
+
+        function clearData() {
+            document.getElementById('result').style.display = 'none';
+            localStorage.clear();
+            showResult('🗑️ Data cleared', false);
+        }
+
+        // Check for OAuth response on page load
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hash = new URLSearchParams(window.location.hash.substring(1));
+            
+            // Check for authorization code (redirect flow)
+            if (urlParams.get('code')) {
+                showResult(`✅ Got authorization code: ${urlParams.get('code').substring(0, 20)}...
+                <br>In a real app, this would be exchanged for tokens on your server.`, false);
+                return;
+            }
+            
+            // Check for access token (popup flow)
+            if (hash.get('access_token')) {
+                const accessToken = hash.get('access_token');
+                const idToken = hash.get('id_token');
+                
+                if (idToken) {
+                    try {
+                        // Decode JWT token
+                        const payload = JSON.parse(atob(idToken.split('.')[1]));
+                        showResult(`✅ Authentication successful!
+                        <br><strong>Name:</strong> ${payload.name}
+                        <br><strong>Email:</strong> ${payload.email}
+                        <br><strong>Token:</strong> ${accessToken.substring(0, 20)}...`, false);
+                        
+                        // Send success message to parent if in popup
+                        if (window.opener) {
+                            window.opener.postMessage({
+                                success: true,
+                                user: { name: payload.name, email: payload.email }
+                            }, window.location.origin);
+                            window.close();
+                        }
+                    } catch (error) {
+                        showResult(`❌ Error decoding token: ${error.message}`, true);
+                    }
+                }
+                return;
+            }
+            
+            // Check for errors
+            if (urlParams.get('error')) {
+                showResult(`❌ OAuth Error: ${urlParams.get('error')}
+                <br>Description: ${urlParams.get('error_description') || 'No description'}`, true);
+                return;
+            }
+            
+            showResult(`📋 Current origin: ${window.location.origin}
+            <br>Client ID: ${CLIENT_ID.substring(0, 20)}...
+            <br>Ready to test OAuth flows!`, false);
+        };
+    </script>
+</body>
+</html>
