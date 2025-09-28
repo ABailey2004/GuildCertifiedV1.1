@@ -4,10 +4,9 @@
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 /js/*
-  Content-Type: application/javascript; charset=utf-8
+  Content-Type: application/javascript
 
 /styles/*
-  Content-Type: text/css; charset=utf-8
+  Content-Type: text/css
