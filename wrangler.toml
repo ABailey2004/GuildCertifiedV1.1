@@ -1,0 +1,14 @@
+[env.production]
+compatibility_date = "2023-05-18"
+
+[[env.production.rules]]
+type = "Text"
+globs = ["**/*.js"]
+[env.production.rules.headers]
+"Content-Type" = "application/javascript; charset=utf-8"
+
+[[env.production.rules]]
+type = "Text"
+globs = ["**/*.css"]
+[env.production.rules.headers]
+"Content-Type" = "text/css; charset=utf-8"
