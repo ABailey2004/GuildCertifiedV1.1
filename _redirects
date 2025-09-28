@@ -1,3 +1,5 @@
-# Ensure proper MIME types
-/styles/* /styles/:splat 200
 /js/* /js/:splat 200
+  Content-Type: application/javascript
+
+/styles/* /styles/:splat 200
+  Content-Type: text/css
