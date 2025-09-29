@@ -2,11 +2,23 @@
 class Dashboard {
     constructor() {
         this.currentUser = null;
+        this.isCloudflarePages = window.location.hostname.includes('.pages.dev');
         this.init();
     }
 
     init() {
+        console.log('🚀 Initializing Dashboard...');
+        console.log('📍 Environment:', this.isCloudflarePages ? 'Cloudflare Pages' : 'Local');
+        
+        // Bind events immediately
         this.bindEvents();
+        
+        // Load user data when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.show());
+        } else {
+            this.show();
+        }
     }
 
     bindEvents() {
@@ -27,8 +39,16 @@ class Dashboard {
         });
 
         document.getElementById('update-description')?.addEventListener('click', () => {
-            this.updateDescription();
+            this.showDescriptionEditModal();
         });
+        
+        // Also bind to description text for inline editing
+        const descriptionEl = document.getElementById('dashboard-profile-description');
+        if (descriptionEl) {
+            descriptionEl.addEventListener('click', () => {
+                this.showDescriptionEditModal();
+            });
+        }
 
         document.getElementById('edit-profile-btn')?.addEventListener('click', () => {
             this.editProfile();
@@ -48,6 +68,14 @@ class Dashboard {
         });
 
         // Server setup button
+        document.getElementById('setup-server')?.addEventListener('click', () => {
+            this.setupServer();
+        });
+        
+        // Server management button
+        document.getElementById('manage-servers')?.addEventListener('click', () => {
+            this.manageServers();
+        });
         document.getElementById('setup-server-btn')?.addEventListener('click', (e) => {
             e.preventDefault();
             this.showServerSetupModal();
@@ -55,52 +83,103 @@ class Dashboard {
     }
 
     async show() {
-        // Always check for the most recent user data from localStorage first
-        const storedUser = localStorage.getItem('currentUser');
-        const authState = localStorage.getItem('authState');
-        
-        console.log('🔍 Dashboard loading - Auth state:', authState);
-        
-        if (storedUser && (authState === 'logged-in' || authState === 'setup-required')) {
-            console.log('📁 Loading user from localStorage...');
-            this.currentUser = JSON.parse(storedUser);
-            console.log('✅ User loaded from localStorage:', this.currentUser.name || this.currentUser.display_name);
-        } else {
-            // Fallback to auth manager
-            const authManager = window.authManager;
-            if (authManager && authManager.currentUser && authManager.authState === 'logged-in') {
-                console.log('📁 Loading user from authManager...');
-                this.currentUser = authManager.currentUser;
-            } else {
-                // For demo purposes, create a default user if none exists
-                console.log('🔧 No user found, creating demo user...');
-                this.currentUser = {
-                    id: 'demo-user-123',
-                    discord_id: 'demo-user-123',
-                    name: 'Demo User',
-                    display_name: 'Demo User',
-                    avatar: null,
-                    discriminator: '0001',
-                    description: 'This is a demo user account for testing purposes.',
-                    profileType: 'public',
-                    socialLinks: {}
-                };
-                // Save the demo user for profile viewing
-                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        try {
+            console.log('📊 Loading dashboard data...');
+            
+            // Check localStorage with error handling
+            let storedUser = null;
+            let authState = null;
+            
+            try {
+                storedUser = localStorage.getItem('currentUser');
+                authState = localStorage.getItem('authState');
+            } catch (error) {
+                console.warn('⚠️ localStorage access issue:', error);
             }
+            
+            console.log('🔍 Auth state:', authState);
+            console.log('👤 Stored user exists:', !!storedUser);
+            
+            if (storedUser && (authState === 'logged-in' || authState === 'setup-required')) {
+                try {
+                    this.currentUser = JSON.parse(storedUser);
+                    console.log('✅ User loaded from localStorage:', this.currentUser.name || this.currentUser.display_name);
+                } catch (parseError) {
+                    console.error('❌ Failed to parse stored user:', parseError);
+                    this.createDemoUser();
+                }
+            } else {
+                // Check auth manager
+                const authManager = window.authManager;
+                if (authManager && authManager.currentUser && authManager.authState === 'logged-in') {
+                    console.log('📁 Loading user from authManager...');
+                    this.currentUser = authManager.currentUser;
+                } else {
+                    // Create demo user for testing
+                    this.createDemoUser();
+                }
+            }
+            
+            // Load dashboard data
+            await this.loadDashboardData();
+            
+        } catch (error) {
+            console.error('❌ Dashboard show error:', error);
+            this.showError('Failed to load dashboard. Please refresh the page.');
         }
+    }
+    
+    createDemoUser() {
+        console.log('🔧 Creating demo user for testing...');
+        this.currentUser = {
+            id: 'demo-user-123',
+            discord_id: 'demo-user-123', 
+            name: 'Demo User',
+            display_name: 'Demo User',
+            avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=5865f2&color=ffffff&size=128',
+            discriminator: '0001',
+            description: 'This is a demo user account. Sign in with Discord to use your real profile!',
+            profile_type: 'public',
+            socialLinks: {},
+            created_at: new Date().toISOString()
+        };
         
-        // Load dashboard data
-        await this.loadDashboardData();
+        // Try to save demo user
+        try {
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            localStorage.setItem('authState', 'setup-required');
+        } catch (error) {
+            console.warn('⚠️ Could not save demo user to localStorage:', error);
+        }
     }
 
+    showError(message) {
+        console.error('Dashboard Error:', message);
+        // Create error toast or modal
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'toast error';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${message}</span>`;
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
+    }
+    
     async loadDashboardData() {
         try {
+            console.log('📊 Loading dashboard data...');
+            
             // Ensure we have user data before proceeding
             if (!this.currentUser) {
-                console.log('No current user data available, cannot load dashboard data');
+                console.log('❌ No current user data available');
+                this.showError('No user data available. Please sign in.');
                 return;
             }
+            
+            console.log('✅ Current user:', this.currentUser.name);
             
             // Update profile overview
             this.updateProfileOverview();
@@ -396,6 +475,8 @@ class Dashboard {
         return baseUrls[platform] ? baseUrls[platform] + link.replace('@', '') : link;
     }
 
+
+
     manageSocialLinks() {
         // Open a modal to manage social links
         this.showManageSocialLinksModal();
@@ -608,35 +689,54 @@ class Dashboard {
     }
 
     async handleAvatarUpload(file) {
+        console.log('📤 Uploading avatar...', { name: file.name, size: file.size, type: file.type });
+        
         // Validate file
         if (!file.type.startsWith('image/')) {
-            this.showError('Please select a valid image file.');
+            this.showError('Please select a valid image file (JPG, PNG, GIF, etc.)');
             return;
         }
         
-        // Check file size (limit to 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        // Check file size (limit to 2MB for better performance on Cloudflare Pages)
+        const maxSize = 2 * 1024 * 1024; // 2MB
         if (file.size > maxSize) {
-            this.showError('Image file is too large. Please select an image under 5MB.');
+            this.showError('Image file is too large. Please select an image under 2MB.');
             return;
         }
         
         try {
+            // Show loading indicator
+            this.showLoadingToast('Processing image...');
+            
             // Convert image to base64 for storage
             const imageDataURL = await this.fileToDataURL(file);
+            console.log('📄 Image converted to data URL, size:', imageDataURL.length);
             
-            // Optionally resize the image
-            const resizedImage = await this.resizeImage(imageDataURL, 300, 300);
+            // Resize the image to optimize storage
+            const resizedImage = await this.resizeImage(imageDataURL, 256, 256);
+            console.log('🔄 Image resized, new size:', resizedImage.length);
             
             // Update user data with new avatar
-            this.currentUser.custom_avatar = resizedImage;
-            this.currentUser.avatar_source = 'custom';
-            
-            // Save to localStorage
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-            
-            // Update auth manager if available
-            if (window.authManager) {
+            if (this.currentUser) {
+                this.currentUser.custom_avatar = resizedImage;
+                this.currentUser.avatar_source = 'custom';
+                this.currentUser.avatar = resizedImage; // Also update main avatar field
+                
+                // Save to localStorage with error handling
+                try {
+                    localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                    console.log('✅ Avatar saved to localStorage');
+                } catch (storageError) {
+                    console.error('❌ localStorage save failed:', storageError);
+                    this.showError('Failed to save avatar. Storage may be full.');
+                    return;
+                }
+                
+                // Update UI immediately
+                this.updateProfileOverview();
+                
+                // Update auth manager if available
+                if (window.authManager && window.authManager.currentUser) {
                 window.authManager.currentUser = this.currentUser;
                 // Refresh avatar display across the entire app
                 window.authManager.refreshAvatarDisplay();
@@ -647,13 +747,37 @@ class Dashboard {
                 window.localData.saveUser(this.currentUser);
             }
             
-            this.showSuccess('Profile picture updated successfully!');
-            
-            console.log('✅ Avatar uploaded and saved');
+                this.showSuccess('Profile picture updated successfully!');
+                
+                console.log('✅ Avatar uploaded and saved');
+            } else {
+                console.warn('⚠️ No current user data available');
+            }
             
         } catch (error) {
-            console.error('Error uploading avatar:', error);
+            console.error('❌ Error uploading avatar:', error);
             this.showError('Failed to upload avatar. Please try again.');
+        } finally {
+            // Hide any loading indicators
+            this.hideLoadingToast();
+        }
+    }
+    
+    showLoadingToast(message) {
+        // Remove any existing loading toast
+        const existing = document.querySelector('.toast.loading');
+        if (existing) existing.remove();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'toast loading';
+        loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>${message}</span>`;
+        document.body.appendChild(loadingDiv);
+    }
+    
+    hideLoadingToast() {
+        const loadingToast = document.querySelector('.toast.loading');
+        if (loadingToast) {
+            loadingToast.remove();
         }
     }
 
@@ -1455,6 +1579,127 @@ class Dashboard {
         const modal = document.getElementById('server-setup-modal');
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
+    }
+    
+    // Additional methods for proper dashboard functionality
+    
+    setupServer() {
+        console.log('🏗️ Setting up server...');
+        this.showServerSetupModal();
+    }
+    
+    manageServers() {
+        console.log('🏢 Managing servers...');
+        // For now, show info modal
+        this.showInfoModal('Server Management', 'Server management features are coming soon! You can currently update your profile and manage social links.');
+    }
+    
+    showDescriptionEditModal() {
+        console.log('📝 Editing description...');
+        
+        const currentDescription = this.currentUser?.description || '';
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'description-edit-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> Edit Description</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Profile Description:</label>
+                    <textarea id="description-textarea" maxlength="500" placeholder="Tell us about yourself or your server..." style="min-height: 120px;">${currentDescription}</textarea>
+                    <div class="character-count">
+                        <span id="char-count">${currentDescription.length}</span>/500 characters
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                    <button class="btn btn-primary" onclick="window.dashboard.saveDescription(); this.closest('.modal').remove();">Save Description</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+        
+        // Bind character counter
+        const textarea = modal.querySelector('#description-textarea');
+        const charCount = modal.querySelector('#char-count');
+        
+        textarea.addEventListener('input', () => {
+            const length = textarea.value.length;
+            charCount.textContent = length;
+            charCount.parentElement.classList.toggle('warning', length > 400);
+            charCount.parentElement.classList.toggle('error', length > 500);
+        });
+        
+        // Focus on textarea
+        setTimeout(() => textarea.focus(), 100);
+    }
+    
+    saveDescription() {
+        const textarea = document.getElementById('description-textarea');
+        if (!textarea) return;
+        
+        const newDescription = textarea.value.trim();
+        console.log('💾 Saving description:', newDescription.substring(0, 50) + '...');
+        
+        // Update current user
+        if (this.currentUser) {
+            this.currentUser.description = newDescription;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                console.log('✅ Description saved to localStorage');
+                
+                // Update UI immediately
+                this.updateProfileOverview();
+                
+                // Show success message
+                this.showSuccess('Description updated successfully!');
+                
+            } catch (error) {
+                console.error('❌ Failed to save description:', error);
+                this.showError('Failed to save description. Please try again.');
+            }
+        }
+    }
+    
+    showInfoModal(title, message) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-info-circle"></i> ${title}</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <p>${message}</p>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Got it!</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+    }
+    
+    showSuccess(message) {
+        console.log('✅ Success:', message);
+        const successDiv = document.createElement('div');
+        successDiv.className = 'toast success';
+        successDiv.innerHTML = `<i class="fas fa-check"></i><span>${message}</span>`;
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 3000);
     }
 }
 
