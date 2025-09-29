@@ -1229,6 +1229,15 @@ body {
     color: #ef4444;
 }
 
+.toast.loading {
+    border-inline-start-color: #3b82f6;
+    color: #1e40af;
+}
+
+.toast.loading i {
+    color: #3b82f6;
+}
+
 .toast span {
     font-weight: 500;
     font-size: 0.95rem;
