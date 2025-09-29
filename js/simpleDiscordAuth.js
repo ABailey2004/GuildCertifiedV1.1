@@ -18,6 +18,13 @@ class SimpleDiscordAuth {
             return;
         }
         
+        // Check if redirect URI might be the issue
+        const redirectInfo = CONFIG.OAUTH.getRedirectUriInfo();
+        if (redirectInfo.isCloudflare) {
+            console.log('☁️ Cloudflare tunnel detected:', redirectInfo.current);
+            console.log('📋 Add this to Discord Developer Portal:', redirectInfo.instructions);
+        }
+        
         // Use config helper for URL generation
         const authUrl = CONFIG.OAUTH.getDiscordAuthUrl(this.redirectUri);
         console.log('🔗 Discord auth URL:', authUrl);
